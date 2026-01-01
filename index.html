@@ -1,0 +1,1027 @@
+<!doctype html>
+<html lang="ru" data-theme="dark">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="color-scheme" content="light dark">
+  <title>Год в пикселях — трекер настроения</title>
+  <style>
+    :root{
+      /* sizing */
+      --cell: clamp(18px, 2.1vw, 28px);
+      --gap:  clamp(4px, 0.55vw, 8px);
+      --radius: 18px;
+
+      /* semantic */
+      --pageBg: #f2f4fb;
+      --pageBg2:#eef2ff;
+      --card: rgba(255,255,255,.78);
+      --cardSolid:#ffffff;
+      --card2: rgba(255,255,255,.55);
+      --text:#0b1020;
+      --muted:#596277;
+      --border: rgba(15, 23, 42, 0.12);
+      --shadow: 0 14px 40px rgba(2,6,23,.12);
+      --focus: rgba(99,102,241,.35);
+
+      --btnBg: rgba(255,255,255,.72);
+      --btnHover: rgba(255,255,255,.92);
+
+      --cellBg: rgba(255,255,255,.85);
+      --cellBorder: rgba(15,23,42,.14);
+      --cellDisabled: rgba(15,23,42,.07);
+    }
+
+    html[data-theme="dark"]{
+      --pageBg: #070a12;
+      --pageBg2:#0a1020;
+      --card: rgba(15,23,42,.72);
+      --cardSolid:#0f172a;
+      --card2: rgba(17,28,51,.62);
+      --text:#e5e7eb;
+      --muted:#aab3c2;
+      --border: rgba(148,163,184,0.18);
+      --shadow: 0 18px 55px rgba(0,0,0,.55);
+      --focus: rgba(99,102,241,.45);
+
+      --btnBg: rgba(15,23,42,.72);
+      --btnHover: rgba(15,23,42,.90);
+
+      --cellBg: rgba(17,28,51,.70);
+      --cellBorder: rgba(148,163,184,.18);
+      --cellDisabled: rgba(148,163,184,.08);
+    }
+
+    *{ box-sizing:border-box; }
+    html, body{ height:100%; }
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(1100px 650px at 18% 12%, rgba(99,102,241,.24), transparent 55%),
+        radial-gradient(900px 550px at 82% 18%, rgba(16,185,129,.18), transparent 58%),
+        linear-gradient(180deg, var(--pageBg) 0%, var(--pageBg2) 55%, var(--pageBg) 100%);
+      background-attachment: fixed;
+    }
+
+    .wrap{ max-width: 1320px; margin: 0 auto; padding: 18px; }
+
+    /* Header */
+    header{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap: 14px;
+      flex-wrap:wrap;
+      padding-top: 10px;
+    }
+    h1{
+      margin:0;
+      font-size: clamp(22px, 2.2vw, 30px);
+      letter-spacing: -0.04em;
+      line-height:1.05;
+    }
+    .sub{
+      margin: 10px 0 0;
+      color: var(--muted);
+      max-width: 68ch;
+      font-size: 14px;
+      line-height:1.45;
+    }
+
+    .toolbar{
+      display:flex;
+      align-items:center;
+      gap: 10px;
+      flex-wrap:wrap;
+      justify-content:flex-end;
+    }
+    .pill{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: var(--btnBg);
+      backdrop-filter: blur(10px);
+      box-shadow: 0 1px 0 rgba(0,0,0,.05);
+    }
+    select{
+      font: inherit;
+      padding: 6px 8px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text);
+      outline: none;
+    }
+    .btn{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding: 9px 12px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: var(--btnBg);
+      color: var(--text);
+      cursor:pointer;
+      user-select:none;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 1px 0 rgba(0,0,0,.05);
+      transition: transform .08s ease, box-shadow .15s ease, background .15s ease;
+      touch-action: manipulation;
+    }
+    .btn:hover{ transform: translateY(-1px); box-shadow: var(--shadow); background: var(--btnHover); }
+    .btn:active{ transform: translateY(0px); }
+    .btn.danger{ border-color: color-mix(in srgb, #ef4444 40%, var(--border)); }
+    .btn.filelike{ position: relative; overflow:hidden; }
+    .btn.filelike input{ position:absolute; inset:0; opacity:0; cursor:pointer; }
+
+    /* Layout */
+    .layout{
+      display:grid;
+      grid-template-columns: minmax(0, 1fr) 360px;
+      gap: 16px;
+      margin-top: 16px;
+      align-items:start;
+    }
+    @media (max-width: 980px){
+      .layout{ grid-template-columns: 1fr; }
+      .toolbar{ width: 100%; justify-content:flex-start; }
+    }
+
+    .card{
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(12px);
+    }
+
+    /* Board (calendar) */
+    .board{ padding: 16px; overflow:auto; }
+    .boardTop{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap: 10px;
+      margin-bottom: 12px;
+      flex-wrap:wrap;
+    }
+    .legendSmall{
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    /* One source of truth for alignment */
+    .grid12{
+      display:grid;
+      grid-template-columns: 44px repeat(12, var(--cell));
+      gap: var(--gap);
+      align-items:center;
+    }
+    .months .month{
+      text-align:center;
+      color: var(--muted);
+      font-size: 12px;
+      user-select:none;
+      letter-spacing: .02em;
+      padding-bottom: 2px;
+    }
+    .months .spacer{ height: 1px; }
+
+    .rows{
+      display:grid;
+      grid-template-columns: 44px 1fr;
+      gap: 10px;
+      margin-top: 6px;
+    }
+    .days{
+      display:grid;
+      grid-template-rows: repeat(31, var(--cell));
+      gap: var(--gap);
+      font-size: 12px;
+      color: var(--muted);
+      user-select:none;
+      align-content:start;
+    }
+    .dayNum{
+      height: var(--cell);
+      display:flex;
+      align-items:center;
+      justify-content:flex-end;
+      padding-right: 6px;
+      opacity: .95;
+    }
+
+    .cells{
+      display:grid;
+      grid-template-columns: repeat(12, var(--cell));
+      grid-template-rows: repeat(31, var(--cell));
+      gap: var(--gap);
+      align-content:start;
+    }
+    .cell{
+      width: var(--cell);
+      height: var(--cell);
+      border-radius: 9px;
+      border: 1px solid var(--cellBorder);
+      background: var(--cellBg);
+      cursor:pointer;
+      transition: transform .06s ease, box-shadow .15s ease, border-color .15s ease, filter .12s ease;
+      outline:none;
+      touch-action: manipulation;
+    }
+    .cell:hover{
+      transform: translateY(-1px);
+      box-shadow: 0 10px 22px rgba(0,0,0,.14);
+      border-color: color-mix(in srgb, var(--text) 14%, var(--cellBorder));
+    }
+    .cell:active{ transform: translateY(0); }
+    .cell:focus-visible{ box-shadow: 0 0 0 3px var(--focus); }
+    .cell[aria-disabled="true"]{
+      opacity: 0.22;
+      cursor:not-allowed;
+      transform:none !important;
+      box-shadow:none !important;
+      background: var(--cellDisabled);
+      border-color: transparent;
+    }
+
+    .hint{
+      margin-top: 12px;
+      display:flex;
+      gap:8px;
+      align-items:center;
+      flex-wrap:wrap;
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .kbd{
+      display:inline-block;
+      padding: 2px 8px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: var(--card2);
+      font-size: 12px;
+    }
+
+    /* Palette */
+    .palette{ padding: 16px; }
+    .paletteHead{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    .paletteHead h2{
+      margin:0;
+      font-size: 16px;
+      letter-spacing:-0.01em;
+    }
+    .paletteList{ display:grid; gap: 10px; }
+
+    .pItem{
+      display:grid;
+      grid-template-columns: 18px 1fr auto;
+      gap: 10px;
+      align-items:center;
+      padding: 10px 12px;
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      background: var(--card2);
+      cursor:pointer;
+      color: var(--text);
+      transition: transform .06s ease, box-shadow .15s ease, border-color .15s ease;
+      touch-action: manipulation;
+    }
+    .pItem:hover{
+      transform: translateY(-1px);
+      box-shadow: 0 14px 24px rgba(0,0,0,.14);
+      border-color: color-mix(in srgb, var(--text) 12%, var(--border));
+    }
+    .pItem.active{
+      box-shadow: 0 0 0 3px var(--focus);
+      border-color: transparent;
+    }
+    .swatch{
+      width: 18px; height: 18px; border-radius: 7px;
+      border: 1px solid rgba(0,0,0,.18);
+    }
+    html[data-theme="dark"] .swatch{ border-color: rgba(255,255,255,.14); }
+    .pName{ font-size: 13px; line-height:1.2; }
+    .pKey{ font-size: 11px; color: var(--muted); white-space:nowrap; }
+
+    .pActions{
+      display:flex;
+      gap:6px;
+      align-items:center;
+      justify-content:flex-end;
+    }
+    .iconBtn{
+      width: 34px; height: 34px;
+      display:inline-flex;
+      align-items:center; justify-content:center;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: var(--btnBg);
+      color: var(--text);
+      cursor:pointer;
+      transition: transform .06s ease, background .15s ease, box-shadow .15s ease;
+      touch-action: manipulation;
+    }
+    .iconBtn:hover{ transform: translateY(-1px); background: var(--btnHover); box-shadow: 0 10px 18px rgba(0,0,0,.12); }
+    .iconBtn:active{ transform: translateY(0); }
+    .iconBtn.danger{ border-color: color-mix(in srgb, #ef4444 40%, var(--border)); }
+
+    .selected{
+      margin-top: 12px;
+      display:grid;
+      grid-template-columns: 28px 1fr;
+      gap: 10px;
+      align-items:center;
+      padding: 12px;
+      border-radius: 16px;
+      border: 1px solid var(--border);
+      background: var(--card2);
+    }
+    .selected .swatch{ width: 28px; height: 28px; border-radius: 10px; }
+    .selected .label{ font-weight: 650; }
+    .selected .meta{ margin-top: 2px; color: var(--muted); font-size: 12px; }
+
+    /* Dialog */
+    dialog{
+      width: min(560px, calc(100vw - 24px));
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 0;
+      background: var(--cardSolid);
+      color: var(--text);
+      box-shadow: var(--shadow);
+    }
+    html[data-theme="dark"] dialog{ background: #0b1224; }
+    dialog::backdrop{
+      background: rgba(0,0,0,.45);
+      backdrop-filter: blur(6px);
+    }
+    .dlg{
+      padding: 14px;
+    }
+    .dlgHead{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      margin-bottom: 10px;
+    }
+    .dlgHead h3{ margin: 0; font-size: 16px; }
+    .form{
+      display:grid;
+      gap: 10px;
+      margin-top: 10px;
+    }
+    .field{
+      display:grid;
+      gap: 6px;
+    }
+    .field label{
+      font-size: 12px;
+      color: var(--muted);
+    }
+    input[type="text"]{
+      font: inherit;
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text);
+      outline: none;
+    }
+    input[type="color"]{
+      width: 100%;
+      height: 44px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: transparent;
+      padding: 6px;
+      cursor:pointer;
+    }
+    .dlgActions{
+      display:flex;
+      gap: 10px;
+      justify-content:flex-end;
+      flex-wrap:wrap;
+      margin-top: 12px;
+    }
+
+    footer{
+      margin-top: 14px;
+      color: var(--muted);
+      font-size: 12px;
+      padding-bottom: 26px;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div>
+        <h1>Год в пикселях</h1>
+        <p class="sub">
+          Выбирай настроение и кликай по клеткам. Палитру можно редактировать: добавлять свои пункты, менять названия и цвета.
+          Всё хранится локально в браузере.
+        </p>
+      </div>
+
+      <div class="toolbar">
+        <div class="pill">
+          <span>Год:</span>
+          <select id="yearSelect" aria-label="Выбор года"></select>
+        </div>
+
+        <button id="themeBtn" class="btn" title="Переключить тему">🌙 Тема</button>
+        <button id="clearBtn" class="btn danger" title="Очистить все клетки для выбранного года">Очистить</button>
+        <button id="exportBtn" class="btn" title="Скачать данные в JSON">Экспорт</button>
+        <label class="btn filelike" title="Загрузить JSON и восстановить раскраску">
+          Импорт
+          <input id="importInput" type="file" accept="application/json" />
+        </label>
+      </div>
+    </header>
+
+    <main class="layout">
+      <section class="card board">
+        <div class="boardTop">
+          <div class="legendSmall">Клик — покрасить/снять. Невозможные даты отключены (например 31 апреля).</div>
+        </div>
+
+        <!-- months aligned to cells -->
+        <div class="grid12 months" aria-hidden="true">
+          <div class="spacer"></div>
+          <div class="month">янв</div><div class="month">фев</div><div class="month">мар</div><div class="month">апр</div>
+          <div class="month">май</div><div class="month">июн</div><div class="month">июл</div><div class="month">авг</div>
+          <div class="month">сен</div><div class="month">окт</div><div class="month">ноя</div><div class="month">дек</div>
+        </div>
+
+        <div class="rows">
+          <div id="daysCol" class="days" aria-hidden="true"></div>
+          <div id="cells" class="cells" aria-label="Сетка дней"></div>
+        </div>
+
+        <div class="hint">
+          <span class="kbd">ПК</span><span>удерживай</span><span class="kbd">Shift</span><span>и веди мышкой, чтобы красить подряд</span>
+          <span class="kbd">Телефон</span><span>— просто тапай по клеткам</span>
+        </div>
+      </section>
+
+      <aside class="card palette">
+        <div class="paletteHead">
+          <h2>Палитра</h2>
+          <button id="addBtn" class="btn" title="Добавить своё настроение">➕ Добавить</button>
+        </div>
+
+        <div id="paletteList" class="paletteList" aria-label="Список настроений"></div>
+
+        <div class="selected" aria-live="polite">
+          <div class="swatch" id="selectedSwatch" aria-hidden="true"></div>
+          <div>
+            <div class="label" id="selectedLabel">Выбери настроение</div>
+            <div class="meta" id="selectedMeta"></div>
+          </div>
+        </div>
+
+        <details>
+          <summary>Подсказки</summary>
+          <ul>
+            <li>Повторный клик тем же настроением по клетке — снимет цвет.</li>
+            <li>Экспорт/импорт переносит и раскраску, и палитру.</li>
+          </ul>
+        </details>
+      </aside>
+    </main>
+
+    <footer>
+      <span>Офлайн, без логинов. Данные остаются на устройстве.</span>
+    </footer>
+  </div>
+
+  <!-- Add/Edit dialog -->
+  <dialog id="editDialog">
+    <div class="dlg">
+      <div class="dlgHead">
+        <h3 id="dlgTitle">Добавить настроение</h3>
+        <button class="iconBtn" id="dlgClose" aria-label="Закрыть">✕</button>
+      </div>
+
+      <div class="form">
+        <div class="field">
+          <label for="moodName">Название</label>
+          <input id="moodName" type="text" placeholder="например: продуктивный день" maxlength="40" />
+        </div>
+        <div class="field">
+          <label for="moodColor">Цвет</label>
+          <input id="moodColor" type="color" />
+        </div>
+      </div>
+
+      <div class="dlgActions">
+        <button id="dlgDelete" class="btn danger" style="display:none;">Удалить</button>
+        <button id="dlgCancel" class="btn">Отмена</button>
+        <button id="dlgSave" class="btn">Сохранить</button>
+      </div>
+    </div>
+  </dialog>
+
+  <script>
+    // -----------------------------
+    // Single-file "Year in Pixels"
+    // -----------------------------
+
+    // Defaults (can be edited in UI)
+    const DEFAULT_PALETTE = [
+      { id: "unusual", name: "необычный день", color: "#7B4CFF" },
+      { id: "cool",    name: "классный день",  color: "#2F7BFF" },
+      { id: "good",    name: "хороший день",   color: "#2DBE65" },
+      { id: "normal",  name: "обычный день",   color: "#D8F0B0" },
+      { id: "sad",     name: "грустный день",  color: "#F2C86D" },
+      { id: "angry",   name: "злой день",      color: "#FF4B4B" },
+      { id: "tired",   name: "усталый день",   color: "#A8A8AF" },
+      { id: "sick",    name: "болезнь/не очень", color: "#6F8B4A" },
+      { id: "awful",   name: "отвратительный", color: "#2F2F33" },
+      { id: "meh",     name: "так себе день",  color: "#B08A3A" },
+      { id: "love",    name: "любиобильный",   color: "#FF6BD6" },
+      { id: "calm",    name: "спокойный день", color: "#8DD9FF" },
+      { id: "burnout", name: "заёбанный",      color: "#FFEE57" },
+      { id: "pizdec",  name: "пиздецдень",     color: "#7A1B0C" },
+    ];
+
+    // Keys
+    const THEME_KEY   = "moodPixels:theme";
+    const PALETTE_KEY = "moodPixels:palette:v2"; // global palette
+    const DATA_PREFIX = "moodPixels:data:";      // year data
+
+    function dataKey(year){ return `${DATA_PREFIX}${year}`; }
+
+    // ---------- Storage ----------
+    function safeParse(raw, fallback){
+      try{ return JSON.parse(raw); }catch{ return fallback; }
+    }
+
+    function loadPalette(){
+      const raw = localStorage.getItem(PALETTE_KEY);
+      const pal = raw ? safeParse(raw, null) : null;
+      if(Array.isArray(pal) && pal.length) return normalizePalette(pal);
+      return normalizePalette(DEFAULT_PALETTE);
+    }
+    function savePalette(palette){
+      localStorage.setItem(PALETTE_KEY, JSON.stringify(normalizePalette(palette)));
+    }
+
+    function normalizePalette(p){
+      // Ensure {id,name,color}, unique ids
+      const seen = new Set();
+      const out = [];
+      for(const item of p){
+        const id = String(item.id || item.key || cryptoId());
+        if(seen.has(id)) continue;
+        const name = String(item.name || "без названия").trim().slice(0,40) || "без названия";
+        const color = isHex(String(item.color || "")) ? item.color : "#64748b";
+        seen.add(id);
+        out.push({id, name, color});
+      }
+      return out;
+    }
+
+    function loadYear(year){
+      const raw = localStorage.getItem(dataKey(year));
+      const obj = raw ? safeParse(raw, {}) : {};
+      return (obj && typeof obj === "object") ? obj : {};
+    }
+    function saveYear(year, data){
+      localStorage.setItem(dataKey(year), JSON.stringify(data));
+    }
+
+    // ---------- Helpers ----------
+    function daysInMonth(year, monthIndex){
+      return new Date(year, monthIndex + 1, 0).getDate();
+    }
+    function fmtDate(year, monthIndex, day){
+      const m = String(monthIndex + 1).padStart(2,"0");
+      const d = String(day).padStart(2,"0");
+      return `${year}-${m}-${d}`;
+    }
+    function cryptoId(){
+      if(window.crypto && crypto.getRandomValues){
+        const a = new Uint32Array(2);
+        crypto.getRandomValues(a);
+        return "u" + a[0].toString(16) + a[1].toString(16);
+      }
+      return "u" + Math.random().toString(16).slice(2);
+    }
+    function isHex(s){
+      return /^#[0-9a-fA-F]{6}$/.test(s);
+    }
+
+    // ---------- Theme ----------
+    function preferredTheme(){
+      return window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+    }
+    function applyTheme(theme){
+      document.documentElement.dataset.theme = theme;
+      localStorage.setItem(THEME_KEY, theme);
+      themeBtn.textContent = theme === "dark" ? "☀️ Тема" : "🌙 Тема";
+    }
+    function initTheme(){
+      const saved = localStorage.getItem(THEME_KEY);
+      applyTheme(saved || preferredTheme());
+    }
+
+    // ---------- UI refs ----------
+    const yearSelect = document.getElementById("yearSelect");
+    const themeBtn = document.getElementById("themeBtn");
+    const clearBtn = document.getElementById("clearBtn");
+    const exportBtn = document.getElementById("exportBtn");
+    const importInput = document.getElementById("importInput");
+
+    const daysCol = document.getElementById("daysCol");
+    const cellsEl = document.getElementById("cells");
+
+    const paletteList = document.getElementById("paletteList");
+    const selectedSwatch = document.getElementById("selectedSwatch");
+    const selectedLabel = document.getElementById("selectedLabel");
+    const selectedMeta = document.getElementById("selectedMeta");
+    const addBtn = document.getElementById("addBtn");
+
+    // dialog
+    const editDialog = document.getElementById("editDialog");
+    const dlgTitle = document.getElementById("dlgTitle");
+    const dlgClose = document.getElementById("dlgClose");
+    const dlgCancel = document.getElementById("dlgCancel");
+    const dlgSave = document.getElementById("dlgSave");
+    const dlgDelete = document.getElementById("dlgDelete");
+    const moodName = document.getElementById("moodName");
+    const moodColor = document.getElementById("moodColor");
+
+    let palette = loadPalette();
+    let selected = palette[0];
+    let editingId = null; // null => add
+
+    // ---------- Render ----------
+    function renderYearOptions(){
+      const now = new Date().getFullYear();
+      const years = [now - 1, now, now + 1, now + 2];
+      yearSelect.innerHTML = "";
+      for(const y of years){
+        const opt = document.createElement("option");
+        opt.value = String(y);
+        opt.textContent = String(y);
+        yearSelect.appendChild(opt);
+      }
+      yearSelect.value = String(now);
+    }
+
+    function setSelected(id){
+      const p = palette.find(x => x.id === id) || palette[0];
+      selected = p;
+      selectedSwatch.style.background = p.color;
+      selectedLabel.textContent = p.name;
+      selectedMeta.textContent = `ID: ${p.id} • Цвет: ${p.color}`;
+      for(const el of paletteList.querySelectorAll(".pItem")){
+        el.classList.toggle("active", el.dataset.id === p.id);
+      }
+    }
+
+    function renderPalette(){
+      paletteList.innerHTML = "";
+      for(const p of palette){
+        const row = document.createElement("div");
+        row.className = "pItem";
+        row.dataset.id = p.id;
+        row.setAttribute("role","button");
+        row.setAttribute("tabindex","0");
+
+        const sw = document.createElement("div");
+        sw.className = "swatch";
+        sw.style.background = p.color;
+
+        const name = document.createElement("div");
+        name.className = "pName";
+        name.textContent = p.name;
+
+        const actions = document.createElement("div");
+        actions.className = "pActions";
+
+        const small = document.createElement("div");
+        small.className = "pKey";
+        small.textContent = p.id;
+
+        const editBtn = document.createElement("button");
+        editBtn.className = "iconBtn";
+        editBtn.title = "Редактировать";
+        editBtn.textContent = "✏️";
+        editBtn.addEventListener("click", (e)=>{ e.stopPropagation(); openEdit(p.id); });
+
+        const delBtn = document.createElement("button");
+        delBtn.className = "iconBtn danger";
+        delBtn.title = "Удалить";
+        delBtn.textContent = "🗑️";
+        delBtn.addEventListener("click", (e)=>{ e.stopPropagation(); deleteMood(p.id); });
+
+        actions.append(small, editBtn, delBtn);
+        row.append(sw, name, actions);
+
+        row.addEventListener("click", ()=> setSelected(p.id));
+        row.addEventListener("keydown", (e)=>{
+          if(e.key === "Enter" || e.key === " "){
+            e.preventDefault();
+            setSelected(p.id);
+          }
+        });
+
+        paletteList.appendChild(row);
+      }
+
+      // keep selection valid
+      if(!palette.find(x => x.id === selected?.id)) selected = palette[0];
+      setSelected(selected.id);
+    }
+
+    function renderDaysAxis(){
+      daysCol.innerHTML = "";
+      for(let d=1; d<=31; d++){
+        const el = document.createElement("div");
+        el.className = "dayNum";
+        el.textContent = String(d);
+        daysCol.appendChild(el);
+      }
+    }
+
+    function applyPaint(year, dateStr){
+      const data = loadYear(year);
+      const current = data[dateStr];
+
+      // Toggle off if same selected
+      if(current && current.id === selected.id){
+        delete data[dateStr];
+      }else{
+        data[dateStr] = { id: selected.id, color: selected.color };
+      }
+      saveYear(year, data);
+    }
+
+    function paintCellStyle(year, cell, dateStr){
+      const data = loadYear(year);
+      const val = data[dateStr];
+      cell.style.background = (val && val.color) ? val.color : "";
+    }
+
+    function renderGrid(year){
+      const data = loadYear(year);
+      cellsEl.innerHTML = "";
+
+      for(let day=1; day<=31; day++){
+        for(let month=0; month<12; month++){
+          const maxDay = daysInMonth(year, month);
+          const enabled = day <= maxDay;
+
+          const cell = document.createElement("div");
+          cell.className = "cell";
+          cell.dataset.date = fmtDate(year, month, day);
+          cell.setAttribute("role","button");
+          cell.setAttribute("tabindex", enabled ? "0" : "-1");
+          cell.setAttribute("aria-disabled", enabled ? "false" : "true");
+          cell.title = enabled ? cell.dataset.date : "Такого дня в этом месяце нет";
+
+          if(enabled){
+            const val = data[cell.dataset.date];
+            if(val && val.color) cell.style.background = val.color;
+          }
+
+          const apply = ()=>{
+            if(!enabled) return;
+            applyPaint(year, cell.dataset.date);
+            paintCellStyle(year, cell, cell.dataset.date);
+          };
+
+          cell.addEventListener("click", apply);
+
+          cell.addEventListener("keydown", (e)=>{
+            if(e.key === "Enter" || e.key === " "){
+              e.preventDefault();
+              apply();
+            }
+          });
+
+          // Shift+drag painting (desktop)
+          cell.addEventListener("pointerdown", (e)=>{
+            if(!enabled) return;
+            if(e.shiftKey){
+              isPainting = true;
+              cell.setPointerCapture(e.pointerId);
+              apply();
+            }
+          });
+          cell.addEventListener("pointerenter", ()=>{
+            if(!enabled) return;
+            if(isPainting) apply();
+          });
+          cell.addEventListener("pointerup", ()=>{ isPainting = false; });
+
+          cellsEl.appendChild(cell);
+        }
+      }
+    }
+
+    // ---------- Palette management ----------
+    function openAdd(){
+      editingId = null;
+      dlgTitle.textContent = "Добавить настроение";
+      dlgDelete.style.display = "none";
+      moodName.value = "";
+      moodColor.value = "#22c55e";
+      editDialog.showModal();
+      setTimeout(()=> moodName.focus(), 50);
+    }
+
+    function openEdit(id){
+      const item = palette.find(x => x.id === id);
+      if(!item) return;
+      editingId = id;
+      dlgTitle.textContent = "Редактировать настроение";
+      dlgDelete.style.display = "inline-flex";
+      moodName.value = item.name;
+      moodColor.value = item.color;
+      editDialog.showModal();
+      setTimeout(()=> moodName.focus(), 50);
+    }
+
+    function saveDialog(){
+      const name = String(moodName.value || "").trim();
+      const color = String(moodColor.value || "").trim();
+
+      if(!name){
+        alert("Напиши название.");
+        return;
+      }
+      if(!isHex(color)){
+        alert("Нужен цвет в формате #RRGGBB.");
+        return;
+      }
+
+      if(editingId){
+        palette = palette.map(p => p.id === editingId ? { ...p, name: name.slice(0,40), color } : p);
+        savePalette(palette);
+        renderPalette();
+        // If selected item edited — refresh selection
+        if(selected.id === editingId) setSelected(editingId);
+
+        // Optional: update stored cells color for this mood id to new color (nice UX)
+        // We'll update for current selected year only to keep it fast.
+        const year = Number(yearSelect.value);
+        const data = loadYear(year);
+        let changed = false;
+        for(const k of Object.keys(data)){
+          if(data[k] && data[k].id === editingId){
+            data[k].color = color;
+            changed = true;
+          }
+        }
+        if(changed) saveYear(year, data);
+        renderGrid(year);
+      }else{
+        const id = cryptoId();
+        palette = [{id, name: name.slice(0,40), color}, ...palette];
+        savePalette(palette);
+        renderPalette();
+        setSelected(id);
+      }
+
+      editDialog.close();
+    }
+
+    function deleteMood(id){
+      if(!confirm("Удалить этот пункт из палитры?")) return;
+
+      palette = palette.filter(p => p.id !== id);
+      if(!palette.length){
+        palette = normalizePalette(DEFAULT_PALETTE);
+      }
+      savePalette(palette);
+      renderPalette();
+
+      const year = Number(yearSelect.value);
+      renderGrid(year);
+    }
+
+    function deleteFromDialog(){
+      if(!editingId) return;
+      if(!confirm("Удалить этот пункт из палитры?")) return;
+      const id = editingId;
+      editDialog.close();
+      editingId = null;
+      deleteMood(id);
+    }
+
+    // ---------- Export / Import ----------
+    function downloadJSON(filename, obj){
+      const blob = new Blob([JSON.stringify(obj, null, 2)], {type:"application/json"});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    exportBtn.addEventListener("click", ()=>{
+      const year = Number(yearSelect.value);
+      const payload = {
+        version: 2,
+        year,
+        palette: palette,
+        data: loadYear(year),
+        exportedAt: new Date().toISOString(),
+      };
+      downloadJSON(`mood-pixels-${year}.json`, payload);
+    });
+
+    importInput.addEventListener("change", async (e)=>{
+      const file = e.target.files && e.target.files[0];
+      if(!file) return;
+
+      try{
+        const text = await file.text();
+        const payload = safeParse(text, null);
+
+        if(!payload || typeof payload !== "object" || !payload.data){
+          alert("Не похоже на файл экспорта.");
+          return;
+        }
+
+        const year = Number(payload.year || yearSelect.value);
+        if(Array.isArray(payload.palette) && payload.palette.length){
+          palette = normalizePalette(payload.palette);
+          savePalette(palette);
+          renderPalette();
+        }
+        saveYear(year, payload.data);
+
+        yearSelect.value = String(year);
+        renderGrid(year);
+        alert("Импорт выполнен ✅");
+      }catch(err){
+        console.error(err);
+        alert("Не удалось импортировать JSON.");
+      }finally{
+        importInput.value = "";
+      }
+    });
+
+    // ---------- Controls ----------
+    themeBtn.addEventListener("click", ()=>{
+      const current = document.documentElement.dataset.theme || "light";
+      applyTheme(current === "dark" ? "light" : "dark");
+    });
+
+    clearBtn.addEventListener("click", ()=>{
+      const year = Number(yearSelect.value);
+      if(!confirm(`Очистить все данные за ${year}?`)) return;
+      saveYear(year, {});
+      renderGrid(year);
+    });
+
+    yearSelect.addEventListener("change", ()=>{
+      renderGrid(Number(yearSelect.value));
+    });
+
+    // Dialog bindings
+    addBtn.addEventListener("click", openAdd);
+    dlgClose.addEventListener("click", ()=> editDialog.close());
+    dlgCancel.addEventListener("click", ()=> editDialog.close());
+    dlgSave.addEventListener("click", saveDialog);
+    dlgDelete.addEventListener("click", deleteFromDialog);
+    editDialog.addEventListener("click", (e)=>{
+      // click outside content closes
+      const rect = editDialog.getBoundingClientRect();
+      const inDialog = (rect.top <= e.clientY && e.clientY <= rect.bottom && rect.left <= e.clientX && e.clientX <= rect.right);
+      if(!inDialog) editDialog.close();
+    });
+
+    // stop painting when pointer released anywhere
+    window.addEventListener("pointerup", ()=>{ isPainting = false; });
+
+    // ---------- Boot ----------
+    initTheme();
+    renderYearOptions();
+    renderDaysAxis();
+    palette = loadPalette();
+    renderPalette();
+    renderGrid(Number(yearSelect.value));
+  </script>
+</body>
+</html>
