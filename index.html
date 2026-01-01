@@ -7,12 +7,10 @@
   <title>Год в пикселях — трекер настроения</title>
   <style>
     :root{
-      /* sizing */
       --cell: clamp(18px, 2.1vw, 28px);
       --gap:  clamp(4px, 0.55vw, 8px);
       --radius: 18px;
 
-      /* semantic */
       --pageBg: #f2f4fb;
       --pageBg2:#eef2ff;
       --card: rgba(255,255,255,.78);
@@ -67,7 +65,6 @@
 
     .wrap{ max-width: 1320px; margin: 0 auto; padding: 18px; }
 
-    /* Header */
     header{
       display:flex;
       align-items:flex-start;
@@ -85,7 +82,7 @@
     .sub{
       margin: 10px 0 0;
       color: var(--muted);
-      max-width: 68ch;
+      max-width: 78ch;
       font-size: 14px;
       line-height:1.45;
     }
@@ -107,6 +104,7 @@
       background: var(--btnBg);
       backdrop-filter: blur(10px);
       box-shadow: 0 1px 0 rgba(0,0,0,.05);
+      user-select:none;
     }
     select{
       font: inherit;
@@ -132,6 +130,7 @@
       box-shadow: 0 1px 0 rgba(0,0,0,.05);
       transition: transform .08s ease, box-shadow .15s ease, background .15s ease;
       touch-action: manipulation;
+      white-space:nowrap;
     }
     .btn:hover{ transform: translateY(-1px); box-shadow: var(--shadow); background: var(--btnHover); }
     .btn:active{ transform: translateY(0px); }
@@ -139,10 +138,49 @@
     .btn.filelike{ position: relative; overflow:hidden; }
     .btn.filelike input{ position:absolute; inset:0; opacity:0; cursor:pointer; }
 
-    /* Layout */
+    .toggle{
+      display:inline-flex;
+      align-items:center;
+      gap: 10px;
+      padding: 7px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: var(--btnBg);
+      cursor:pointer;
+      user-select:none;
+      touch-action: manipulation;
+    }
+    .toggle .dot{
+      width: 34px; height: 20px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: color-mix(in srgb, var(--card2) 80%, transparent);
+      position: relative;
+      flex: 0 0 auto;
+    }
+    .toggle .dot::after{
+      content:"";
+      position:absolute;
+      top: 2px; left: 2px;
+      width: 16px; height: 16px;
+      border-radius: 999px;
+      background: color-mix(in srgb, var(--text) 22%, var(--card2));
+      transition: left .15s ease, background .15s ease;
+    }
+    .toggle[data-on="true"] .dot{
+      background: rgba(16,185,129,.20);
+      border-color: rgba(16,185,129,.30);
+    }
+    .toggle[data-on="true"] .dot::after{
+      left: 16px;
+      background: rgba(16,185,129,.75);
+    }
+    .toggle .tlabel{ font-size: 13px; }
+    .toggle .tmeta{ font-size: 11px; color: var(--muted); margin-top: 1px; }
+
     .layout{
       display:grid;
-      grid-template-columns: minmax(0, 1fr) 360px;
+      grid-template-columns: minmax(0, 1fr) 380px;
       gap: 16px;
       margin-top: 16px;
       align-items:start;
@@ -160,7 +198,6 @@
       backdrop-filter: blur(12px);
     }
 
-    /* Board (calendar) */
     .board{ padding: 16px; overflow:auto; }
     .boardTop{
       display:flex;
@@ -170,12 +207,8 @@
       margin-bottom: 12px;
       flex-wrap:wrap;
     }
-    .legendSmall{
-      color: var(--muted);
-      font-size: 12px;
-    }
+    .legendSmall{ color: var(--muted); font-size: 12px; }
 
-    /* One source of truth for alignment */
     .grid12{
       display:grid;
       grid-template-columns: 44px repeat(12, var(--cell));
@@ -226,11 +259,11 @@
     .cell{
       width: var(--cell);
       height: var(--cell);
-      border-radius: 9px;
+      border-radius: 10px;
       border: 1px solid var(--cellBorder);
       background: var(--cellBg);
       cursor:pointer;
-      transition: transform .06s ease, box-shadow .15s ease, border-color .15s ease, filter .12s ease;
+      transition: transform .06s ease, box-shadow .15s ease, border-color .15s ease;
       outline:none;
       touch-action: manipulation;
     }
@@ -268,7 +301,6 @@
       font-size: 12px;
     }
 
-    /* Palette */
     .palette{ padding: 16px; }
     .paletteHead{
       display:flex;
@@ -276,12 +308,9 @@
       justify-content:space-between;
       gap: 10px;
       margin-bottom: 10px;
+      flex-wrap:wrap;
     }
-    .paletteHead h2{
-      margin:0;
-      font-size: 16px;
-      letter-spacing:-0.01em;
-    }
+    .paletteHead h2{ margin:0; font-size: 16px; letter-spacing:-0.01em; }
     .paletteList{ display:grid; gap: 10px; }
 
     .pItem{
@@ -307,6 +336,11 @@
       box-shadow: 0 0 0 3px var(--focus);
       border-color: transparent;
     }
+    .pItem.inMix{
+      box-shadow: 0 0 0 3px rgba(16,185,129,.35);
+      border-color: transparent;
+    }
+
     .swatch{
       width: 18px; height: 18px; border-radius: 7px;
       border: 1px solid rgba(0,0,0,.18);
@@ -352,7 +386,9 @@
     .selected .label{ font-weight: 650; }
     .selected .meta{ margin-top: 2px; color: var(--muted); font-size: 12px; }
 
-    /* Dialog */
+    details{ margin-top: 12px; color: var(--muted); font-size: 13px; }
+    details summary{ cursor:pointer; user-select:none; }
+
     dialog{
       width: min(560px, calc(100vw - 24px));
       border: 1px solid var(--border);
@@ -367,9 +403,7 @@
       background: rgba(0,0,0,.45);
       backdrop-filter: blur(6px);
     }
-    .dlg{
-      padding: 14px;
-    }
+    .dlg{ padding: 14px; }
     .dlgHead{
       display:flex;
       align-items:center;
@@ -378,19 +412,9 @@
       margin-bottom: 10px;
     }
     .dlgHead h3{ margin: 0; font-size: 16px; }
-    .form{
-      display:grid;
-      gap: 10px;
-      margin-top: 10px;
-    }
-    .field{
-      display:grid;
-      gap: 6px;
-    }
-    .field label{
-      font-size: 12px;
-      color: var(--muted);
-    }
+    .form{ display:grid; gap: 10px; margin-top: 10px; }
+    .field{ display:grid; gap: 6px; }
+    .field label{ font-size: 12px; color: var(--muted); }
     input[type="text"]{
       font: inherit;
       padding: 10px 12px;
@@ -417,12 +441,7 @@
       margin-top: 12px;
     }
 
-    footer{
-      margin-top: 14px;
-      color: var(--muted);
-      font-size: 12px;
-      padding-bottom: 26px;
-    }
+    footer{ margin-top: 14px; color: var(--muted); font-size: 12px; padding-bottom: 26px; }
   </style>
 </head>
 <body>
@@ -431,8 +450,8 @@
       <div>
         <h1>Год в пикселях</h1>
         <p class="sub">
-          Выбирай настроение и кликай по клеткам. Палитру можно редактировать: добавлять свои пункты, менять названия и цвета.
-          Всё хранится локально в браузере.
+          Можешь красить одним настроением или <b>миксовать</b> несколько.
+          Включи «Микс», отметь 2–4 настроения в палитре — клетка станет градиентом.
         </p>
       </div>
 
@@ -440,6 +459,14 @@
         <div class="pill">
           <span>Год:</span>
           <select id="yearSelect" aria-label="Выбор года"></select>
+        </div>
+
+        <div id="mixToggle" class="toggle" data-on="false" role="button" tabindex="0" aria-label="Переключить режим микса">
+          <div class="dot" aria-hidden="true"></div>
+          <div>
+            <div class="tlabel">🎛️ Микс</div>
+            <div class="tmeta" id="mixMeta">выключен</div>
+          </div>
         </div>
 
         <button id="themeBtn" class="btn" title="Переключить тему">🌙 Тема</button>
@@ -455,10 +482,9 @@
     <main class="layout">
       <section class="card board">
         <div class="boardTop">
-          <div class="legendSmall">Клик — покрасить/снять. Невозможные даты отключены (например 31 апреля).</div>
+          <div class="legendSmall">Клик — покрасить/снять. В «Миксе» — ставит выбранный набор. Невозможные даты отключены.</div>
         </div>
 
-        <!-- months aligned to cells -->
         <div class="grid12 months" aria-hidden="true">
           <div class="spacer"></div>
           <div class="month">янв</div><div class="month">фев</div><div class="month">мар</div><div class="month">апр</div>
@@ -472,8 +498,9 @@
         </div>
 
         <div class="hint">
-          <span class="kbd">ПК</span><span>удерживай</span><span class="kbd">Shift</span><span>и веди мышкой, чтобы красить подряд</span>
-          <span class="kbd">Телефон</span><span>— просто тапай по клеткам</span>
+          <span class="kbd">ПК</span><span>Shift+drag — красить подряд</span>
+          <span class="kbd">Телефон</span><span>— тапы по клеткам</span>
+          <span class="kbd">Микс</span><span>— отметь 2–4 настроения в палитре</span>
         </div>
       </section>
 
@@ -496,8 +523,9 @@
         <details>
           <summary>Подсказки</summary>
           <ul>
-            <li>Повторный клик тем же настроением по клетке — снимет цвет.</li>
-            <li>Экспорт/импорт переносит и раскраску, и палитру.</li>
+            <li>Обычный режим: выбираешь 1 настроение — красишь им.</li>
+            <li>«Микс»: кликай по нескольким настроениям (они подсветятся), потом красишь день градиентом.</li>
+            <li>Повторный клик по клетке с тем же набором — снимает цвет.</li>
           </ul>
         </details>
       </aside>
@@ -508,7 +536,6 @@
     </footer>
   </div>
 
-  <!-- Add/Edit dialog -->
   <dialog id="editDialog">
     <div class="dlg">
       <div class="dlgHead">
@@ -536,11 +563,6 @@
   </dialog>
 
   <script>
-    // -----------------------------
-    // Single-file "Year in Pixels"
-    // -----------------------------
-
-    // Defaults (can be edited in UI)
     const DEFAULT_PALETTE = [
       { id: "unusual", name: "необычный день", color: "#7B4CFF" },
       { id: "cool",    name: "классный день",  color: "#2F7BFF" },
@@ -558,30 +580,24 @@
       { id: "pizdec",  name: "пиздецдень",     color: "#7A1B0C" },
     ];
 
-    // Keys
     const THEME_KEY   = "moodPixels:theme";
-    const PALETTE_KEY = "moodPixels:palette:v2"; // global palette
-    const DATA_PREFIX = "moodPixels:data:";      // year data
+    const PALETTE_KEY = "moodPixels:palette:v3";
+    const DATA_PREFIX = "moodPixels:data:v3:";
 
     function dataKey(year){ return `${DATA_PREFIX}${year}`; }
+    function safeParse(raw, fallback){ try{ return JSON.parse(raw); }catch{ return fallback; } }
+    function isHex(s){ return /^#[0-9a-fA-F]{6}$/.test(s); }
 
-    // ---------- Storage ----------
-    function safeParse(raw, fallback){
-      try{ return JSON.parse(raw); }catch{ return fallback; }
-    }
-
-    function loadPalette(){
-      const raw = localStorage.getItem(PALETTE_KEY);
-      const pal = raw ? safeParse(raw, null) : null;
-      if(Array.isArray(pal) && pal.length) return normalizePalette(pal);
-      return normalizePalette(DEFAULT_PALETTE);
-    }
-    function savePalette(palette){
-      localStorage.setItem(PALETTE_KEY, JSON.stringify(normalizePalette(palette)));
+    function cryptoId(){
+      if(window.crypto && crypto.getRandomValues){
+        const a = new Uint32Array(2);
+        crypto.getRandomValues(a);
+        return "u" + a[0].toString(16) + a[1].toString(16);
+      }
+      return "u" + Math.random().toString(16).slice(2);
     }
 
     function normalizePalette(p){
-      // Ensure {id,name,color}, unique ids
       const seen = new Set();
       const out = [];
       for(const item of p){
@@ -595,6 +611,16 @@
       return out;
     }
 
+    function loadPalette(){
+      const raw = localStorage.getItem(PALETTE_KEY);
+      const pal = raw ? safeParse(raw, null) : null;
+      if(Array.isArray(pal) && pal.length) return normalizePalette(pal);
+      return normalizePalette(DEFAULT_PALETTE);
+    }
+    function savePalette(palette){
+      localStorage.setItem(PALETTE_KEY, JSON.stringify(normalizePalette(palette)));
+    }
+
     function loadYear(year){
       const raw = localStorage.getItem(dataKey(year));
       const obj = raw ? safeParse(raw, {}) : {};
@@ -604,28 +630,6 @@
       localStorage.setItem(dataKey(year), JSON.stringify(data));
     }
 
-    // ---------- Helpers ----------
-    function daysInMonth(year, monthIndex){
-      return new Date(year, monthIndex + 1, 0).getDate();
-    }
-    function fmtDate(year, monthIndex, day){
-      const m = String(monthIndex + 1).padStart(2,"0");
-      const d = String(day).padStart(2,"0");
-      return `${year}-${m}-${d}`;
-    }
-    function cryptoId(){
-      if(window.crypto && crypto.getRandomValues){
-        const a = new Uint32Array(2);
-        crypto.getRandomValues(a);
-        return "u" + a[0].toString(16) + a[1].toString(16);
-      }
-      return "u" + Math.random().toString(16).slice(2);
-    }
-    function isHex(s){
-      return /^#[0-9a-fA-F]{6}$/.test(s);
-    }
-
-    // ---------- Theme ----------
     function preferredTheme(){
       return window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
     }
@@ -639,12 +643,36 @@
       applyTheme(saved || preferredTheme());
     }
 
-    // ---------- UI refs ----------
+    function daysInMonth(year, monthIndex){ return new Date(year, monthIndex + 1, 0).getDate(); }
+    function fmtDate(year, monthIndex, day){
+      const m = String(monthIndex + 1).padStart(2,"0");
+      const d = String(day).padStart(2,"0");
+      return `${year}-${m}-${d}`;
+    }
+
+    function mixGradient(colors){
+      const uniq = [...new Set(colors)].filter(Boolean);
+      if(uniq.length === 0) return "";
+      if(uniq.length === 1) return uniq[0];
+      const step = 100 / uniq.length;
+      const stops = uniq.map((c,i)=> `${c} ${i*step}% ${(i+1)*step}%`).join(", ");
+      return `conic-gradient(${stops})`;
+    }
+    function normalizeIdSet(ids){ return [...new Set(ids)].filter(Boolean).sort(); }
+    function idsEqual(a,b){
+      if(a.length !== b.length) return false;
+      for(let i=0;i<a.length;i++) if(a[i]!==b[i]) return false;
+      return true;
+    }
+
+    // UI refs
     const yearSelect = document.getElementById("yearSelect");
     const themeBtn = document.getElementById("themeBtn");
     const clearBtn = document.getElementById("clearBtn");
     const exportBtn = document.getElementById("exportBtn");
     const importInput = document.getElementById("importInput");
+    const mixToggle = document.getElementById("mixToggle");
+    const mixMeta = document.getElementById("mixMeta");
 
     const daysCol = document.getElementById("daysCol");
     const cellsEl = document.getElementById("cells");
@@ -667,9 +695,13 @@
 
     let palette = loadPalette();
     let selected = palette[0];
-    let editingId = null; // null => add
 
-    // ---------- Render ----------
+    let mixOn = false;
+    let mixSet = [];
+    let isPainting = false;
+
+    let editingId = null;
+
     function renderYearOptions(){
       const now = new Date().getFullYear();
       const years = [now - 1, now, now + 1, now + 2];
@@ -683,15 +715,43 @@
       yearSelect.value = String(now);
     }
 
+    function updateSelectedUI(){
+      if(mixOn){
+        const colors = mixSet.map(id => palette.find(p => p.id===id)?.color).filter(Boolean);
+        const names = mixSet.map(id => palette.find(p => p.id===id)?.name).filter(Boolean);
+        selectedSwatch.style.background = mixGradient(colors) || "";
+        selectedLabel.textContent = names.length ? names.join(" + ") : "Выбери 2–4 настроения";
+        selectedMeta.textContent = names.length ? `Микс: ${mixSet.length} шт.` : "Нажми на несколько пунктов в палитре";
+      }else{
+        selectedSwatch.style.background = selected?.color || "";
+        selectedLabel.textContent = selected?.name || "Выбери настроение";
+        selectedMeta.textContent = selected ? `ID: ${selected.id} • Цвет: ${selected.color}` : "";
+      }
+    }
+
     function setSelected(id){
       const p = palette.find(x => x.id === id) || palette[0];
       selected = p;
-      selectedSwatch.style.background = p.color;
-      selectedLabel.textContent = p.name;
-      selectedMeta.textContent = `ID: ${p.id} • Цвет: ${p.color}`;
+      updateSelectedUI();
       for(const el of paletteList.querySelectorAll(".pItem")){
-        el.classList.toggle("active", el.dataset.id === p.id);
+        el.classList.toggle("active", !mixOn && el.dataset.id === p.id);
       }
+    }
+
+    function toggleMix(on){
+      mixOn = on;
+      mixToggle.dataset.on = String(mixOn);
+      mixMeta.textContent = mixOn ? "включен" : "выключен";
+      if(mixOn){
+        if(!mixSet.length && selected) mixSet = [selected.id];
+      }else{
+        if(mixSet.length){
+          const first = palette.find(p => p.id === mixSet[0]);
+          if(first) selected = first;
+        }
+      }
+      renderPalette();
+      updateSelectedUI();
     }
 
     function renderPalette(){
@@ -733,20 +793,45 @@
         actions.append(small, editBtn, delBtn);
         row.append(sw, name, actions);
 
-        row.addEventListener("click", ()=> setSelected(p.id));
+        const onClick = ()=>{
+          if(mixOn){
+            const has = mixSet.includes(p.id);
+            if(has){
+              mixSet = mixSet.filter(x => x !== p.id);
+            }else{
+              if(mixSet.length >= 4){
+                mixSet = [...mixSet.slice(1), p.id];
+              }else{
+                mixSet = [...mixSet, p.id];
+              }
+            }
+            mixSet = normalizeIdSet(mixSet);
+            updateSelectedUI();
+            for(const el of paletteList.querySelectorAll(".pItem")){
+              el.classList.toggle("inMix", mixSet.includes(el.dataset.id));
+              el.classList.toggle("active", false);
+            }
+          }else{
+            setSelected(p.id);
+          }
+        };
+
+        row.addEventListener("click", onClick);
         row.addEventListener("keydown", (e)=>{
           if(e.key === "Enter" || e.key === " "){
             e.preventDefault();
-            setSelected(p.id);
+            onClick();
           }
         });
 
         paletteList.appendChild(row);
       }
 
-      // keep selection valid
-      if(!palette.find(x => x.id === selected?.id)) selected = palette[0];
-      setSelected(selected.id);
+      for(const el of paletteList.querySelectorAll(".pItem")){
+        const id = el.dataset.id;
+        el.classList.toggle("inMix", mixOn && mixSet.includes(id));
+        el.classList.toggle("active", !mixOn && selected && id === selected.id);
+      }
     }
 
     function renderDaysAxis(){
@@ -759,23 +844,43 @@
       }
     }
 
+    function paintValueForCurrentSelection(){
+      if(mixOn){
+        const ids = normalizeIdSet(mixSet);
+        if(!ids.length) return null;
+        const colors = ids.map(id => palette.find(p => p.id===id)?.color).filter(Boolean);
+        return { ids, colors, bg: mixGradient(colors) };
+      }else{
+        if(!selected) return null;
+        return { ids: [selected.id], colors: [selected.color], bg: selected.color };
+      }
+    }
+
     function applyPaint(year, dateStr){
       const data = loadYear(year);
       const current = data[dateStr];
 
-      // Toggle off if same selected
-      if(current && current.id === selected.id){
+      const val = paintValueForCurrentSelection();
+      if(!val) return;
+
+      let curIds = [];
+      if(current){
+        if(Array.isArray(current.ids)) curIds = current.ids;
+        else if(typeof current.id === "string") curIds = [current.id];
+      }
+      curIds = normalizeIdSet(curIds);
+
+      if(current && idsEqual(curIds, val.ids)){
         delete data[dateStr];
       }else{
-        data[dateStr] = { id: selected.id, color: selected.color };
+        data[dateStr] = { ids: val.ids, colors: val.colors, bg: val.bg };
       }
       saveYear(year, data);
     }
 
-    function paintCellStyle(year, cell, dateStr){
-      const data = loadYear(year);
-      const val = data[dateStr];
-      cell.style.background = (val && val.color) ? val.color : "";
+    function applyCellStyle(cell, stored){
+      if(!stored){ cell.style.background = ""; return; }
+      cell.style.background = stored.bg || "";
     }
 
     function renderGrid(year){
@@ -795,19 +900,15 @@
           cell.setAttribute("aria-disabled", enabled ? "false" : "true");
           cell.title = enabled ? cell.dataset.date : "Такого дня в этом месяце нет";
 
-          if(enabled){
-            const val = data[cell.dataset.date];
-            if(val && val.color) cell.style.background = val.color;
-          }
+          if(enabled) applyCellStyle(cell, data[cell.dataset.date]);
 
           const apply = ()=>{
             if(!enabled) return;
             applyPaint(year, cell.dataset.date);
-            paintCellStyle(year, cell, cell.dataset.date);
+            applyCellStyle(cell, loadYear(year)[cell.dataset.date]);
           };
 
           cell.addEventListener("click", apply);
-
           cell.addEventListener("keydown", (e)=>{
             if(e.key === "Enter" || e.key === " "){
               e.preventDefault();
@@ -815,7 +916,6 @@
             }
           });
 
-          // Shift+drag painting (desktop)
           cell.addEventListener("pointerdown", (e)=>{
             if(!enabled) return;
             if(e.shiftKey){
@@ -824,10 +924,7 @@
               apply();
             }
           });
-          cell.addEventListener("pointerenter", ()=>{
-            if(!enabled) return;
-            if(isPainting) apply();
-          });
+          cell.addEventListener("pointerenter", ()=>{ if(enabled && isPainting) apply(); });
           cell.addEventListener("pointerup", ()=>{ isPainting = false; });
 
           cellsEl.appendChild(cell);
@@ -835,7 +932,7 @@
       }
     }
 
-    // ---------- Palette management ----------
+    // Dialog
     function openAdd(){
       editingId = null;
       dlgTitle.textContent = "Добавить настроение";
@@ -861,31 +958,27 @@
     function saveDialog(){
       const name = String(moodName.value || "").trim();
       const color = String(moodColor.value || "").trim();
-
-      if(!name){
-        alert("Напиши название.");
-        return;
-      }
-      if(!isHex(color)){
-        alert("Нужен цвет в формате #RRGGBB.");
-        return;
-      }
+      if(!name){ alert("Напиши название."); return; }
+      if(!isHex(color)){ alert("Нужен цвет в формате #RRGGBB."); return; }
 
       if(editingId){
         palette = palette.map(p => p.id === editingId ? { ...p, name: name.slice(0,40), color } : p);
         savePalette(palette);
         renderPalette();
-        // If selected item edited — refresh selection
-        if(selected.id === editingId) setSelected(editingId);
 
-        // Optional: update stored cells color for this mood id to new color (nice UX)
-        // We'll update for current selected year only to keep it fast.
+        if(selected?.id === editingId) selected = palette.find(p => p.id===editingId) || palette[0];
+        updateSelectedUI();
+
         const year = Number(yearSelect.value);
         const data = loadYear(year);
         let changed = false;
         for(const k of Object.keys(data)){
-          if(data[k] && data[k].id === editingId){
-            data[k].color = color;
+          const v = data[k];
+          if(!v) continue;
+          const ids = Array.isArray(v.ids) ? v.ids : (typeof v.id === "string" ? [v.id] : []);
+          if(ids.includes(editingId)){
+            const colors = ids.map(id => palette.find(p=>p.id===id)?.color).filter(Boolean);
+            data[k] = { ids: normalizeIdSet(ids), colors, bg: mixGradient(colors) };
             changed = true;
           }
         }
@@ -896,7 +989,12 @@
         palette = [{id, name: name.slice(0,40), color}, ...palette];
         savePalette(palette);
         renderPalette();
-        setSelected(id);
+        if(mixOn){
+          mixSet = normalizeIdSet([...mixSet, id]).slice(-4);
+        }else{
+          selected = palette.find(p=>p.id===id) || palette[0];
+        }
+        updateSelectedUI();
       }
 
       editDialog.close();
@@ -904,16 +1002,16 @@
 
     function deleteMood(id){
       if(!confirm("Удалить этот пункт из палитры?")) return;
-
       palette = palette.filter(p => p.id !== id);
-      if(!palette.length){
-        palette = normalizePalette(DEFAULT_PALETTE);
-      }
+      if(!palette.length) palette = normalizePalette(DEFAULT_PALETTE);
       savePalette(palette);
-      renderPalette();
 
-      const year = Number(yearSelect.value);
-      renderGrid(year);
+      mixSet = mixSet.filter(x => x !== id);
+      if(selected?.id === id) selected = palette[0];
+
+      renderPalette();
+      updateSelectedUI();
+      renderGrid(Number(yearSelect.value));
     }
 
     function deleteFromDialog(){
@@ -925,7 +1023,7 @@
       deleteMood(id);
     }
 
-    // ---------- Export / Import ----------
+    // Export/Import
     function downloadJSON(filename, obj){
       const blob = new Blob([JSON.stringify(obj, null, 2)], {type:"application/json"});
       const url = URL.createObjectURL(blob);
@@ -940,29 +1038,20 @@
 
     exportBtn.addEventListener("click", ()=>{
       const year = Number(yearSelect.value);
-      const payload = {
-        version: 2,
-        year,
-        palette: palette,
-        data: loadYear(year),
-        exportedAt: new Date().toISOString(),
-      };
+      const payload = { version: 3, year, palette, data: loadYear(year), exportedAt: new Date().toISOString() };
       downloadJSON(`mood-pixels-${year}.json`, payload);
     });
 
     importInput.addEventListener("change", async (e)=>{
       const file = e.target.files && e.target.files[0];
       if(!file) return;
-
       try{
         const text = await file.text();
         const payload = safeParse(text, null);
-
         if(!payload || typeof payload !== "object" || !payload.data){
           alert("Не похоже на файл экспорта.");
           return;
         }
-
         const year = Number(payload.year || yearSelect.value);
         if(Array.isArray(payload.palette) && payload.palette.length){
           palette = normalizePalette(payload.palette);
@@ -970,7 +1059,6 @@
           renderPalette();
         }
         saveYear(year, payload.data);
-
         yearSelect.value = String(year);
         renderGrid(year);
         alert("Импорт выполнен ✅");
@@ -982,7 +1070,7 @@
       }
     });
 
-    // ---------- Controls ----------
+    // Controls
     themeBtn.addEventListener("click", ()=>{
       const current = document.documentElement.dataset.theme || "light";
       applyTheme(current === "dark" ? "light" : "dark");
@@ -995,32 +1083,36 @@
       renderGrid(year);
     });
 
-    yearSelect.addEventListener("change", ()=>{
-      renderGrid(Number(yearSelect.value));
+    yearSelect.addEventListener("change", ()=> renderGrid(Number(yearSelect.value)));
+
+    function toggleMixFromUI(){ toggleMix(!mixOn); }
+    mixToggle.addEventListener("click", toggleMixFromUI);
+    mixToggle.addEventListener("keydown", (e)=>{
+      if(e.key === "Enter" || e.key === " "){ e.preventDefault(); toggleMixFromUI(); }
     });
 
-    // Dialog bindings
     addBtn.addEventListener("click", openAdd);
     dlgClose.addEventListener("click", ()=> editDialog.close());
     dlgCancel.addEventListener("click", ()=> editDialog.close());
     dlgSave.addEventListener("click", saveDialog);
     dlgDelete.addEventListener("click", deleteFromDialog);
     editDialog.addEventListener("click", (e)=>{
-      // click outside content closes
       const rect = editDialog.getBoundingClientRect();
       const inDialog = (rect.top <= e.clientY && e.clientY <= rect.bottom && rect.left <= e.clientX && e.clientX <= rect.right);
       if(!inDialog) editDialog.close();
     });
 
-    // stop painting when pointer released anywhere
     window.addEventListener("pointerup", ()=>{ isPainting = false; });
 
-    // ---------- Boot ----------
+    // Boot
     initTheme();
     renderYearOptions();
     renderDaysAxis();
     palette = loadPalette();
+    selected = palette[0];
     renderPalette();
+    toggleMix(false);
+    updateSelectedUI();
     renderGrid(Number(yearSelect.value));
   </script>
 </body>
